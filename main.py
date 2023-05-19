@@ -17,7 +17,7 @@ scroll_speed = 0
 sleep_time = 0.00008
 
 ###################################################asssets######################################################3
-rectangles = []  # List to store the random rectangles
+tie_fighters = []  # List to store the random rectangles
 
 laser_x = 0
 laser_y = 0
@@ -60,8 +60,8 @@ class SpaceShip:
         self.rect = spaceship_image.get_rect()
         self.rect.x = self.x
         self.rect.y = self.y
-        self.max_speed = 5
-        self.min_speed = -5
+        self.max_speed = 2
+        self.min_speed = -2
         self.spaceship_x_vel = 0
         self.spaceship_y_vel = 0
 
@@ -84,7 +84,7 @@ class Laser:
         self.laser_height = 10
         self.laser_color = (255, 0, 0)
         self.laser_speed = 0.5
-        self.max_laser_speed = 10
+        self.max_laser_speed = 2
         self.laser_vel = 0
         self.laser_x = x
         self.laser_y = y
@@ -109,7 +109,7 @@ laserx = Laser(laser_x, laser_y)
 ##########################################################################################################
 
 def check_collision():
-    for rectx, _ in rectangles:
+    for rectx, _ in tie_fighters:
         if millenium_falcon.get_rect().colliderect(rectx):
             # Handle collision response here
             print("Collision occurred")
@@ -146,8 +146,8 @@ while Running:
     if keys[py.K_d]:
         millenium_falcon.set_x_vel(1)
 
-    millenium_falcon.spaceship_x_vel *= 0.98
-    millenium_falcon.spaceship_y_vel *= 0.98
+    millenium_falcon.spaceship_x_vel *= 0.96
+    millenium_falcon.spaceship_y_vel *= 0.96
 
     # Limit the maximum speed
     spaceship_velocity_x = np.clip(millenium_falcon.spaceship_x_vel, millenium_falcon.min_speed,
@@ -156,14 +156,15 @@ while Running:
                                    millenium_falcon.max_speed)
 
     # Update spaceship position based on velocity
-    tx = millenium_falcon.x
-    ty = millenium_falcon.y
-    tx += spaceship_velocity_x
-    ty += spaceship_velocity_y
-    millenium_falcon.x = np.clip(tx, 0, width)
-    millenium_falcon.y = np.clip(ty, 0, height)
-
-    print(millenium_falcon.x)
+    # tx = millenium_falcon.x
+    # ty = millenium_falcon.y
+    # tx += spaceship_velocity_x
+    # ty += spaceship_velocity_y
+    # millenium_falcon.x = np.clip(tx, 0, width - 80)
+    # millenium_falcon.y = np.clip(ty, 0, height - 100)
+    millenium_falcon.x = np.clip(millenium_falcon.x + spaceship_velocity_x, 0, width - 80)
+    millenium_falcon.y = np.clip(millenium_falcon.y + spaceship_velocity_y, 0, height - 100)
+    # print(spaceship_velocity_x)
 
     if not laserx.laser_state:
         laserx.laser_vel += laserx.laser_speed
@@ -182,15 +183,15 @@ while Running:
         background_position = 0
 
     # Generate a new random rectangle and add it to the list
-    if len(rectangles) < 15:  # Limit to 5 rectangles
+    if len(tie_fighters) < 15:  # Limit to 5 rectangles
         rect_width = 20
         rect_height = 20
         # Generate rect_x at least 50 pixels away from the last drawn rectangle
-        if len(rectangles) == 0:
+        if len(tie_fighters) == 0:
             rect_x = width / 2
             rect_y = height - 20
         else:
-            last_rect = rectangles[-1][0]
+            last_rect = tie_fighters[-1][0]
             # print(last_rect)
             # min_x = min(random.choice([last_rect.x - 50, last_rect.x + last_rect.width + 50]), width)
             min_x = min(last_rect.x - 400, 0)
@@ -203,7 +204,7 @@ while Running:
         # rect = py.Rect(rect_x, rect_y, rect_width, rect_height)
         # print(rect)
         rect = TieFighter(rect_x, rect_y)
-        rectangles.append((rect, rect_color))
+        tie_fighters.append((rect, rect_color))
 
     # Draw the background image
     screen.blit(background, (0, background_position))
@@ -211,8 +212,8 @@ while Running:
 
     # Update and draw the rectangles
     i = 0  # print(rectangles)
-    while i < len(rectangles):
-        rect, color = rectangles[i]
+    while i < len(tie_fighters):
+        rect, color = tie_fighters[i]
         rect.y += math.ceil(scroll_speed)
         # print(float("{:.3f}".format(scroll_speed)) <= 0)
         # fl_speed = float("{:.4f}".format(scroll_speed))
@@ -225,10 +226,15 @@ while Running:
         # Check if the rectangle has left the screen
         if rect.y > height:
             # Remove the rectangle from the list
-            rectangles.pop(i)
+            tie_fighters.pop(i)
         else:
             i += 1
 
+    ################################### Events #################################################
+
+    check_collision()
+
+    #################################### Draw ##################################################
     millenium_falcon.draw()
     # screen.blit(spaceship_image, (spaceship_x, spaceship_y))
     # py.draw.circle(screen, spaceship_color, (spaceship_x, spaceship_y), spaceship_radius)
@@ -238,7 +244,7 @@ while Running:
 
     # check_collision()
     py.display.flip()
-    if scroll_speed <= 2:
+    if scroll_speed <= 1:
         scroll_speed += 0.01
     # scroll_speed += 0.01
     # print(scroll_speed)
