@@ -25,9 +25,11 @@ LASER_X = 0
 LASER_Y = 0
 LASER_COLOR = (255, 0, 0)
 INERTIA_FACTOR = 0.95
-MAX_OBJECTS = 25
+MAX_OBJECTS = 30
 MAX_SCROLL = 20
 CLOCK_RATE = 30
+
+SCORE = 0
 
 ######################################################++++ASSETS++++####################################################
 
@@ -39,6 +41,7 @@ tief2 = py.transform.scale(tief2, (25, 25))
 
 class TieFighter:
     def __init__(self, x, y, var):
+        self.type = "TIE"
         self.speed = 0
         self.x = x
         self.y = y
@@ -56,7 +59,8 @@ class TieFighter:
         return self.image.get_rect()
 
 
-spaceship_image = py.image.load("./assets/flcn.png")  # Replace "spaceship.png" with the actual file path of your spaceship image
+spaceship_image = py.image.load(
+    "./assets/flcn.png")  # Replace "spaceship.png" with the actual file path of your spaceship image
 spaceship_image = py.transform.scale(spaceship_image, (80, 100))  # Scale the image to the desired size
 spaceship_x = width // 2 - 50
 spaceship_y = height - 100
@@ -64,6 +68,7 @@ spaceship_y = height - 100
 
 class SpaceShip:
     def __init__(self, x, y):
+        self.type = "MSHIP"
         self.x: int = x
         self.y: int = y
         self.max_speed: int = 8
@@ -71,6 +76,7 @@ class SpaceShip:
         self.spaceship_x_vel: int = 0
         self.spaceship_y_vel: int = 0
         self.spaceship_speed: int = 1
+        self.hit_points = 100
 
     def set_x_vel(self, vel):
         self.spaceship_x_vel += self.spaceship_speed * vel
@@ -89,6 +95,7 @@ class SpaceShip:
 
 class Laser:
     def __init__(self, x, y):
+        self.type = "LASER"
         self.laser_width = 2
         self.laser_height = 10
         self.laser_color = (255, 0, 0)
@@ -111,14 +118,17 @@ class Laser:
         return py.Rect(self.laser_x, self.laser_y, self.laser_width, self.laser_height)
 
 
-astr1 = py.image.load("assets/asteroid1.png")  # Replace "rectangle.png" with the actual file path of your rectangle image
+astr1 = py.image.load(
+    "assets/asteroid1.png")  # Replace "rectangle.png" with the actual file path of your rectangle image
 astr1 = py.transform.scale(astr1, (40, 40))  # Scale the image to the desired size
-astr2 = py.image.load("assets/asteroid2.png")  # Replace "rectangle.png" with the actual file path of your rectangle image
+astr2 = py.image.load(
+    "assets/asteroid2.png")  # Replace "rectangle.png" with the actual file path of your rectangle image
 astr2 = py.transform.scale(astr2, (35, 35))
 
 
 class Asteroid:
     def __init__(self, x, y, var):
+        self.type = "ASTEROID"
         self.x = x
         self.y = y
         self.speed = 0
@@ -142,9 +152,11 @@ health = py.transform.scale(health, (20, 20))
 
 class HealthIcon:
     def __init__(self, x, y):
+        self.type = "HP"
         self.x = x
         self.y = y
-        self.image = astr1
+        self.image = health
+        self.speed = 0
 
     def draw(self):
         screen.blit(self.image, (self.x, self.y))
@@ -153,50 +165,60 @@ class HealthIcon:
         return self.image.get_rect()
 
 
-explosion = py.image.load("./assets/sexp_sprite.png")
+explosion = py.image.load("./assets/exp_sprite.png")
+
+
 # print(explosion.get_height())
 # explosion = py.transform.scale(explosion, (100, 800))
 # print(explosion.get_width())
 
 class Explotion:
-    def __init__(self, x, y):
+    def __init__(self, x=0, y=0):
         self.x = x
         self.y = y
         self.image = explosion
-        self.sprite_width = 50
-        self.sprite_height = 50
-        # Define the number of columns and rows in the sprite sheet
         self.columns = 5
-        self.rows = 1
-
-        # List to store individual sprites
+        self.rows = 5
+        self.sprite_width = self.image.get_width() // self.columns
+        self.sprite_height = self.image.get_height() // self.rows
         self.sprites = []
-        # self.sx,self.sy = 0
-        # print(sy)
+        self.current_frame = 0  # Current frame index
+        self.frame_duration = 0.2  # Duration (in seconds) for each frame
+        self.frame_timer = 0
+        self.explosion_active = False
+        # Populate the sprites list with individual subsurfaces
         for row in range(self.rows):
             for col in range(self.columns):
-                # nx = self.sx + (col * self.sprite_width)
-                # ny = self.sy + (row * self.sprite_height)
                 sx = col * self.sprite_width
                 sy = row * self.sprite_height
-                self.sprite = self.image.subsurface((sx, sy, self.sprite_width, self.sprite_height))
-                self.sprites.append(self.sprite)
+                sprite = self.image.subsurface((sx, sy, self.sprite_width, self.sprite_height))
+                self.sprites.append(sprite)
+        # Animation properties
 
-    def draw(self):
-        # screen.blit(self.sprites[0], (self.x, self.y))
-        # py.display.flip()
-        # # time.sleep(0.2)
-        # py.time.delay(200)
-        # screen.blit(self.sprites[1], (self.x, self.y))
-        # py.display.flip()
-        # time.sleep(0.2)
-        for sprite in self.sprites:
-            # x = (index % self.columns) * self.sprite_width
-            # y = (index // self.columns) * self.sprite_height
-            # print(self.sprite)
-            screen.blit(sprite, (self.x, self.y))
-            py.display.flip()
-            py.time.delay(10)
+    def update(self, dt):
+        self.frame_timer += dt
+        # Check if it's time to switch to the next frame
+        # print(self.current_frame)
+        if self.frame_timer >= self.frame_duration:
+            self.frame_timer = 0  # Reset the frame timer
+            self.current_frame += 1  # Move to the next frame
+            # Check if all frames have been shown
+            #
+
+    def draw(self, x=None, y=None):
+        x = self.x if x is None else x
+        y = self.y if y is None else y
+        current_sprite = self.sprites[self.current_frame]
+        screen.blit(current_sprite, (x, y))
+
+    def finished(self):
+        # print(self.current_frame == (len(self.sprites) - 1))
+        if self.current_frame == (len(self.sprites) - 1):
+            self.current_frame = 0
+            return True
+        else:
+            return False
+
     def get_rect(self):
         return self.image.get_rect()
 
@@ -205,6 +227,7 @@ class Explotion:
 
 millenium_falcon = SpaceShip(spaceship_x, spaceship_y)
 laserx = Laser(LASER_X, LASER_Y)
+new_explosion = Explotion()
 
 
 #######################################################################################################################3
@@ -217,15 +240,47 @@ def check_collision():
         if millenium_falcon.get_rect().move(millenium_falcon.x, millenium_falcon.y).colliderect(rect_pos):
             # print(millenium_falcon.get_rect(), rectx.get_rect())
             # Handle collision response here
-            print("Collision occurred MF")
+            if rectx.type == "HP":
+                space.remove(rectx)
+                millenium_falcon.hit_points = min(millenium_falcon.hit_points + 15, 100)
+                print(millenium_falcon.hit_points, "+ 15")
+            else:
+                space.remove(rectx)
+                millenium_falcon.hit_points -= 15
+                print(millenium_falcon.hit_points, "- 15")
+            break
+            # print("Collision occurred MF")
             # break
-        if laserx.get_rect().colliderect(rect_pos) and not laserx.laser_state:
-            print("Coll laser")
-            py.draw.rect(screen, (255, 255, 0), (rect_pos.x, rect_pos.y, 10, 10))
+        if rectx.type != "HP" and laserx.get_rect().colliderect(rect_pos) and not laserx.laser_state:
+            # print("Coll laser")
+            # py.draw.rect(screen, (255, 255, 0), (rect_pos.x, rect_pos.y, 10, 10))
             laserx.laser_state = True
             # laserx.draw(LASER_COLOR)
-            new_explosion = Explotion(rect_pos.x - 10, rect_pos.y - 10)
-            new_explosion.draw()
+            new_explosion.explosion_active = True  # Set the explosion flag to activate animation
+            new_explosion.x = rect_pos.x - 50
+            new_explosion.y = rect_pos.y
+            space.remove(rectx)
+            break
+
+
+def draw_falcon():
+    # print(millenium_falcon.hit_points)
+    # print(millenium_falcon.hit_points < 0)
+    if millenium_falcon.hit_points >= 0:
+        millenium_falcon.draw()
+    else:
+        py.quit()
+        print("You dead, score = ", SCORE, " my cat plays better than you")
+
+
+def draw_collision():
+    if new_explosion.explosion_active:
+        if new_explosion.finished():
+            new_explosion.explosion_active = False
+        else:
+            new_explosion.update(1)  # Update the explosion animation
+            new_explosion.draw()  # Draw the explosion
+        # py.display.flip()
 
 
 def render_space(space):
@@ -246,16 +301,21 @@ def render_space(space):
 
 
 def fire_laser():
-    if laserx.laser_state:
+    if laserx.laser_state and not new_explosion.finished():
         laserx.laser_state = False
         laserx.laser_x = millenium_falcon.x + 40
         laserx.laser_y = millenium_falcon.y
 
 
+def draw_laser():
+    if not laserx.laser_state:
+        laserx.draw(LASER_COLOR)
+
+
 ################################################ Main  Function ########################################################
 
 def main(Running):
-    global background_position, scroll_speed
+    global background_position, scroll_speed, SCORE
     health_flag = 0
 
     while Running:
@@ -287,8 +347,10 @@ def main(Running):
         millenium_falcon.spaceship_y_vel *= INERTIA_FACTOR
 
         # Limit the maximum speed
-        spaceship_velocity_x = np.clip(millenium_falcon.spaceship_x_vel, millenium_falcon.min_speed, millenium_falcon.max_speed)
-        spaceship_velocity_y = np.clip(millenium_falcon.spaceship_y_vel, millenium_falcon.min_speed, millenium_falcon.max_speed)
+        spaceship_velocity_x = np.clip(millenium_falcon.spaceship_x_vel, millenium_falcon.min_speed,
+                                       millenium_falcon.max_speed)
+        spaceship_velocity_y = np.clip(millenium_falcon.spaceship_y_vel, millenium_falcon.min_speed,
+                                       millenium_falcon.max_speed)
 
         # Update spaceship position based on velocity
         millenium_falcon.x = np.clip(millenium_falcon.x + spaceship_velocity_x, 0, width - 80)
@@ -349,9 +411,10 @@ def main(Running):
             else:
                 pass
 
-            if SPACE_LENGTH == MAX_OBJECTS:
-                if health_flag == 30:
-                    new_health = HealthIcon(rect_x, rect_y)
+            if SPACE_LENGTH == MAX_OBJECTS and millenium_falcon.hit_points < 100:
+                # print(health_flag)
+                if health_flag > 1250:
+                    new_health = HealthIcon(rect_x + 50, rect_y + 50)
                     space.append(new_health)
                     health_flag = 0
                 else:
@@ -361,17 +424,16 @@ def main(Running):
         screen.blit(background, (0, background_position))
         screen.blit(background, (0, background_position - height))
 
+        ################################### Events #####################################################################
+
+        check_collision() if SPACE_LENGTH > 15 else print("Wait powering up")
+
         #################################### Draw #####################################################################
 
         render_space(space)
-        millenium_falcon.draw()
-        if not laserx.laser_state:
-            laserx.draw(LASER_COLOR)
-
-        ################################### Events #####################################################################
-
-        if SPACE_LENGTH > 5:
-            check_collision()
+        draw_falcon()
+        draw_laser()
+        draw_collision()  # Draw the explosion
 
         ###########################################Screen###############################################################
 
@@ -379,6 +441,8 @@ def main(Running):
         if scroll_speed <= MAX_SCROLL:
             scroll_speed += 0.001
         # scroll_speed += 0.01
+        SCORE = SCORE + 0.1
+        print(int(SCORE))
         # print(scroll_speed)
 
     # Done
