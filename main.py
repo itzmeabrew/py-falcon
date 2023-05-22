@@ -23,12 +23,13 @@ space = []  # List to store the random rectangles
 
 LASER_X = 0
 LASER_Y = 0
-LASER_COLOR = (255, 0, 0)
+LASER_COLOR_RED = (255, 0, 0)
+LASER_COLOR_GREEN = (255, 255, 0)
 INERTIA_FACTOR = 0.95
 MAX_OBJECTS = 30
 MAX_SCROLL = 20
-CLOCK_RATE = 30
-
+CLOCK_RATE = 50
+RUNNING = True
 SCORE = 0
 
 ######################################################++++ASSETS++++####################################################
@@ -45,6 +46,9 @@ class TieFighter:
         self.speed = 0
         self.x = x
         self.y = y
+        self.x_vel: int = 0
+        self.y_vel: int = 0
+        self.speed: int = 1
         if var == 1:
             self.image = tief1
         elif var == 2:
@@ -59,8 +63,7 @@ class TieFighter:
         return self.image.get_rect()
 
 
-spaceship_image = py.image.load(
-    "./assets/flcn.png")  # Replace "spaceship.png" with the actual file path of your spaceship image
+spaceship_image = py.image.load("./assets/flcn.png")  # Replace "spaceship.png" with the actual file path of your spaceship image
 spaceship_image = py.transform.scale(spaceship_image, (80, 100))  # Scale the image to the desired size
 spaceship_x = width // 2 - 50
 spaceship_y = height - 100
@@ -73,17 +76,17 @@ class SpaceShip:
         self.y: int = y
         self.max_speed: int = 8
         self.min_speed: int = -8
-        self.spaceship_x_vel: int = 0
-        self.spaceship_y_vel: int = 0
-        self.spaceship_speed: int = 1
+        self.x_vel: int = 0
+        self.y_vel: int = 0
+        self.speed: int = 1
         self.hit_points = 100
 
     def set_x_vel(self, vel):
-        self.spaceship_x_vel += self.spaceship_speed * vel
+        self.x_vel += self.speed * vel
         # print(self.spaceship_x_vel)
 
     def set_y_vel(self, vel):
-        self.spaceship_y_vel += self.spaceship_speed * vel
+        self.y_vel += self.speed * vel
 
     def draw(self):
         screen.blit(spaceship_image, (self.x, self.y))
@@ -94,17 +97,19 @@ class SpaceShip:
 
 
 class Laser:
-    def __init__(self, x, y):
+    def __init__(self, x=0, y=0, laser_Speed=20):
         self.type = "LASER"
         self.laser_width = 2
         self.laser_height = 10
         self.laser_color = (255, 0, 0)
-        self.laser_speed = 1
-        self.max_laser_speed = 20
-        self.laser_vel = 0
-        self.laser_x = x
-        self.laser_y = y
-        self.laser_state = True
+        self.speed = 1
+        self.max_speed = laser_Speed
+        self.y_vel = 0
+        self.x_vel = 0
+        self.direction = 0
+        self.x = x
+        self.y = y
+        self.laser_ready = True
 
     def draw(self, laser_color):
         self.laser_color = laser_color
@@ -112,17 +117,15 @@ class Laser:
         # self.laser_y = laser_y
         # self.laser_width = laser_width
         # self.laser_height = laser_height
-        py.draw.rect(screen, self.laser_color, (self.laser_x, self.laser_y, self.laser_width, self.laser_height))
+        py.draw.rect(screen, self.laser_color, (self.x, self.y, self.laser_width, self.laser_height))
 
     def get_rect(self):
-        return py.Rect(self.laser_x, self.laser_y, self.laser_width, self.laser_height)
+        return py.Rect(self.x, self.y, self.laser_width, self.laser_height)
 
 
-astr1 = py.image.load(
-    "assets/asteroid1.png")  # Replace "rectangle.png" with the actual file path of your rectangle image
+astr1 = py.image.load("assets/asteroid1.png")  # Replace "rectangle.png" with the actual file path of your rectangle image
 astr1 = py.transform.scale(astr1, (40, 40))  # Scale the image to the desired size
-astr2 = py.image.load(
-    "assets/asteroid2.png")  # Replace "rectangle.png" with the actual file path of your rectangle image
+astr2 = py.image.load("assets/asteroid2.png")  # Replace "rectangle.png" with the actual file path of your rectangle image
 astr2 = py.transform.scale(astr2, (35, 35))
 
 
@@ -131,7 +134,10 @@ class Asteroid:
         self.type = "ASTEROID"
         self.x = x
         self.y = y
-        self.speed = 0
+        self.x_vel: int = 0
+        self.y_vel: int = 0
+        self.speed: int = 0
+        self.max_speed = 0
         if var == 1:
             self.image = astr1
         elif var == 2:
@@ -156,7 +162,10 @@ class HealthIcon:
         self.x = x
         self.y = y
         self.image = health
-        self.speed = 0
+        self.x_vel: int = 0
+        self.y_vel: int = 0
+        self.speed: int = 0
+        self.max_speed = 0
 
     def draw(self):
         screen.blit(self.image, (self.x, self.y))
@@ -227,17 +236,27 @@ class Explotion:
 
 millenium_falcon = SpaceShip(spaceship_x, spaceship_y)
 laserx = Laser(LASER_X, LASER_Y)
+lasery = Laser(laser_Speed=10)
+# print(lasery.laser_ready)
 new_explosion = Explotion()
 
 
 #######################################################################################################################3
 
-def check_collision():
+def check_collision(space):
+    falcon_pos = millenium_falcon.get_rect().move(millenium_falcon.x, millenium_falcon.y)
+
+    if falcon_pos.colliderect(lasery.get_rect()) and not lasery.laser_ready:
+        # print("you are shot")
+        lasery.laser_ready = True
+        millenium_falcon.hit_points -= 15
+        print(millenium_falcon.hit_points, "- 10")
+
     for rectx in space:
         # py.draw.rect(screen, (255, 0, 0), millenium_falcon.get_rect().move(millenium_falcon.x, millenium_falcon.y))
         # py.draw.rect(screen, (255, 255, 0), laserx.get_rect())
         rect_pos = rectx.get_rect().move(rectx.x, rectx.y)
-        if millenium_falcon.get_rect().move(millenium_falcon.x, millenium_falcon.y).colliderect(rect_pos):
+        if falcon_pos.colliderect(rect_pos):
             # print(millenium_falcon.get_rect(), rectx.get_rect())
             # Handle collision response here
             if rectx.type == "HP":
@@ -251,10 +270,10 @@ def check_collision():
             break
             # print("Collision occurred MF")
             # break
-        if rectx.type != "HP" and laserx.get_rect().colliderect(rect_pos) and not laserx.laser_state:
+        if rectx.type != "HP" and laserx.get_rect().colliderect(rect_pos) and not laserx.laser_ready:
             # print("Coll laser")
             # py.draw.rect(screen, (255, 255, 0), (rect_pos.x, rect_pos.y, 10, 10))
-            laserx.laser_state = True
+            laserx.laser_ready = True
             # laserx.draw(LASER_COLOR)
             new_explosion.explosion_active = True  # Set the explosion flag to activate animation
             new_explosion.x = rect_pos.x - 50
@@ -264,13 +283,15 @@ def check_collision():
 
 
 def draw_falcon():
+    global RUNNING
     # print(millenium_falcon.hit_points)
     # print(millenium_falcon.hit_points < 0)
     if millenium_falcon.hit_points >= 0:
         millenium_falcon.draw()
     else:
+        print("You dead, score = ", int(SCORE), " my cat plays better than you")
+        RUNNING = False
         py.quit()
-        print("You dead, score = ", SCORE, " my cat plays better than you")
 
 
 def draw_collision():
@@ -283,13 +304,90 @@ def draw_collision():
         # py.display.flip()
 
 
+def init_laserA(direction=0):
+    if laserx.laser_ready and not new_explosion.finished():
+        laserx.laser_ready = False
+        laserx.x = millenium_falcon.x + 40
+        laserx.y = millenium_falcon.y
+        laserx.direction = direction
+
+
+def init_laserB(x, y, direction=0):
+    # print(lasery.laser_ready)
+    if lasery.laser_ready:
+        lasery.laser_ready = False
+        lasery.x = x
+        lasery.y = y
+        lasery.direction = direction
+
+
+def laser_directive():
+    if not laserx.laser_ready:
+        laserx.y_vel += laserx.speed
+        laserx.y_vel *= INERTIA_FACTOR
+        laserx.y_vel = min(laserx.y_vel, laserx.max_speed)
+        # print(laserx.laser_vel)
+        laserx.y -= laserx.y_vel
+        if laserx.y < 0:
+            laserx.laser_ready = True
+
+    if not lasery.laser_ready:
+        lasery.y_vel += laserx.speed
+        lasery.y_vel *= INERTIA_FACTOR
+        lasery.y_vel = min(lasery.y_vel, lasery.max_speed)
+
+        lasery.x_vel += laserx.speed
+        lasery.x_vel *= INERTIA_FACTOR
+        lasery.x_vel = min(lasery.x_vel, lasery.max_speed)
+        # print(laserx.laser_vel)
+        lasery.y += lasery.y_vel
+        lasery.x += lasery.direction * lasery.x_vel
+        if lasery.y < 0 or lasery.y > height:
+            lasery.laser_ready = True
+
+
+def draw_laser():
+    if not laserx.laser_ready:
+        laserx.draw(LASER_COLOR_GREEN)
+    if not lasery.laser_ready:
+        lasery.draw(LASER_COLOR_RED)
+
+
 def render_space(space):
     # Update and draw the rectangles
     i = 0  # print(rectangles)
+    # lsx = len(space)
     while i < len(space):
+        # print(i,len(space))
         spaceObject = space[i]
-        spaceObject.y += math.ceil(scroll_speed) + spaceObject.speed
-        # print(sleep_time)
+        type = spaceObject.type
+        init_speed = int(math.ceil(scroll_speed) + spaceObject.speed)
+        # print(type)
+        cx = random.randint(0, len(space))
+        if type == "TIE" and i == cx:
+            direction_x = int(millenium_falcon.x - spaceObject.x)
+            direction_y = int(millenium_falcon.y - spaceObject.y)
+            length = int(math.sqrt(direction_x ** 2 + direction_y ** 2))
+            # print(direction_y, direction_y)
+            # print("length", length)
+            if length != 0:
+                direction_x /= length
+                direction_y /= length
+
+            # Set velocity based on the normalized direction and speed
+            # spaceObject.x_vel += direction_x * init_speed
+            spaceObject.x_vel *= 0.1
+            # spaceObject.x += spaceObject.x_vel
+            spaceObject.x = int(spaceObject.x + (direction_x * init_speed))
+            spaceObject.y = int(spaceObject.y + (direction_y * init_speed))
+            # print(spaceObject.x)
+            init_laserB(spaceObject.x, spaceObject.y, direction_x)
+
+        else:
+            spaceObject.y += init_speed
+
+            # spaceObject.y = int((spaceObject.y + direction_y)*spaceObject.speed)
+
         # time.sleep(sleep_time)
         spaceObject.draw()
         # Check if the rectangle has left the screen
@@ -298,18 +396,6 @@ def render_space(space):
             space.pop(i)
         else:
             i += 1
-
-
-def fire_laser():
-    if laserx.laser_state and not new_explosion.finished():
-        laserx.laser_state = False
-        laserx.laser_x = millenium_falcon.x + 40
-        laserx.laser_y = millenium_falcon.y
-
-
-def draw_laser():
-    if not laserx.laser_state:
-        laserx.draw(LASER_COLOR)
 
 
 ################################################ Main  Function ########################################################
@@ -325,7 +411,7 @@ def main(Running):
                 Running = False
             elif event.type == py.KEYDOWN:
                 if event.key == py.K_SPACE:
-                    fire_laser()
+                    init_laserA()
 
         keys = py.key.get_pressed()
         # Update spaceship position based on pressed keys
@@ -341,31 +427,19 @@ def main(Running):
 
         ################################################################################################################
         clock.tick(CLOCK_RATE)
-        ################################################################################################################
+        ######################################################+++++++FALCOM CONTROL+++++++##############################
 
-        millenium_falcon.spaceship_x_vel *= INERTIA_FACTOR
-        millenium_falcon.spaceship_y_vel *= INERTIA_FACTOR
+        millenium_falcon.x_vel *= INERTIA_FACTOR
+        millenium_falcon.y_vel *= INERTIA_FACTOR
 
         # Limit the maximum speed
-        spaceship_velocity_x = np.clip(millenium_falcon.spaceship_x_vel, millenium_falcon.min_speed,
-                                       millenium_falcon.max_speed)
-        spaceship_velocity_y = np.clip(millenium_falcon.spaceship_y_vel, millenium_falcon.min_speed,
-                                       millenium_falcon.max_speed)
+        spaceship_velocity_x = np.clip(millenium_falcon.x_vel, millenium_falcon.min_speed, millenium_falcon.max_speed)
+        spaceship_velocity_y = np.clip(millenium_falcon.y_vel, millenium_falcon.min_speed, millenium_falcon.max_speed)
 
         # Update spaceship position based on velocity
         millenium_falcon.x = np.clip(millenium_falcon.x + spaceship_velocity_x, 0, width - 80)
         millenium_falcon.y = np.clip(millenium_falcon.y + spaceship_velocity_y, 0, height - 100)
         # print(millenium_falcon.spaceship_x_vel,spaceship_velocity_x)
-
-        if not laserx.laser_state:
-            laserx.laser_vel += laserx.laser_speed
-            laserx.laser_vel *= INERTIA_FACTOR
-            laserx.laser_vel = min(laserx.laser_vel, laserx.max_laser_speed)
-            # print(laserx.laser_vel)
-            laserx.laser_y -= laserx.laser_vel
-            if laserx.laser_y < 0:
-                laserx.laser_state = True
-
         ############################################################++++++++ Background ++++++++++++####################
 
         background_position += scroll_speed
@@ -385,11 +459,12 @@ def main(Running):
                 rect_y = height - 20
             else:
                 last_rect = space[-1]
-                # print(last_rect)
+                # print(last_rect.x)
                 # min_x = min(random.choice([last_rect.x - 50, last_rect.x + last_rect.width + 50]), width)
-                min_x = np.clip(last_rect.x - 400, 0, last_rect.x + 250)
+                min_x = int(np.clip(last_rect.x - 400, 0, last_rect.x + 250))
                 # print(min_x)
                 max_x = width
+                # print(min_x, max_x)
                 rect_x = random.randint(max(min_x, 0), min(max_x, width - 30))
                 rect_y = random.randint(-height // 2, 0)  # Start rectangles above the screen
 
@@ -398,13 +473,13 @@ def main(Running):
             # print(rect)
             var = random.randint(1, 2)
             speed_modifer = random.randint(0, 2)
-            random_draw = random.randint(1, 2)
+            random_draw = random.randint(1, 100) % 2
 
-            if random_draw == 1:
+            if random_draw == 0:
                 new_tie = TieFighter(rect_x, rect_y, var)
                 new_tie.speed = speed_modifer
                 space.append(new_tie)
-            elif random_draw == 2:
+            elif random_draw == 1:
                 new_asteroid = Asteroid(rect_x, rect_y, var)
                 new_asteroid.speed = speed_modifer
                 space.append(new_asteroid)
@@ -426,7 +501,8 @@ def main(Running):
 
         ################################### Events #####################################################################
 
-        check_collision() if SPACE_LENGTH > 15 else print("Wait powering up")
+        laser_directive()
+        check_collision(space) if SPACE_LENGTH > 15 else print("Wait powering up")
 
         #################################### Draw #####################################################################
 
@@ -442,7 +518,7 @@ def main(Running):
             scroll_speed += 0.001
         # scroll_speed += 0.01
         SCORE = SCORE + 0.1
-        print(int(SCORE))
+        # print(int(SCORE))
         # print(scroll_speed)
 
     # Done
@@ -452,4 +528,4 @@ def main(Running):
 # //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 if __name__ == '__main__':
-    main(True)
+    main(RUNNING)
