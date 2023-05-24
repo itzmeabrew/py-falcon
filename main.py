@@ -25,8 +25,8 @@ LASER_X = 0
 LASER_Y = 0
 LASER_COLOR_RED = (255, 0, 0)
 LASER_COLOR_GREEN = (255, 255, 0)
-INERTIA_FACTOR = 0.95
-MAX_OBJECTS = 30
+INERTIA_FACTOR = 0.92
+MAX_OBJECTS = 20
 MAX_SCROLL = 20
 CLOCK_RATE = 50
 RUNNING = True
@@ -236,7 +236,7 @@ class Explotion:
 
 millenium_falcon = SpaceShip(spaceship_x, spaceship_y)
 laserx = Laser(LASER_X, LASER_Y)
-lasery = Laser(laser_Speed=10)
+lasery = Laser(laser_Speed=5)
 # print(lasery.laser_ready)
 new_explosion = Explotion()
 
